@@ -28,6 +28,9 @@ create table if not exists public.articles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.articles
+add column if not exists status text not null default 'draft';
+
 create table if not exists public.comments (
   id bigint generated always as identity primary key,
   article_id bigint not null references public.articles(id) on delete cascade,

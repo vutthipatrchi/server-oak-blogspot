@@ -59,6 +59,7 @@ export function toArticle(row) {
     authorAvatar: row.author_avatar ?? '',
     authorBio: row.author_bio ?? [],
     date: row.display_date ?? formatDate(row.published_at),
+    publishedAt: row.published_at ?? null,
     likes: row.likes ?? 0,
     sections: toSections(row.sections),
     source: toSource(row.source),
@@ -89,12 +90,37 @@ export function toArticleInsert(body) {
 }
 
 export function toArticleUpdate(body) {
-  const update = toArticleInsert(body)
+  const mapped = toArticleInsert(body)
+  const fieldMap = {
+    category: 'category',
+    tags: 'tags',
+    title: 'title',
+    status: 'status',
+    excerpt: 'excerpt',
+    image: 'image_url',
+    image_url: 'image_url',
+    author: 'author',
+    authorAvatar: 'author_avatar',
+    author_avatar: 'author_avatar',
+    authorBio: 'author_bio',
+    author_bio: 'author_bio',
+    date: 'display_date',
+    display_date: 'display_date',
+    published_at: 'published_at',
+    likes: 'likes',
+    sections: 'sections',
+    source: 'source',
+  }
 
-  for (const [key, value] of Object.entries(update)) {
-    if (value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
-      delete update[key]
+  const update = Object.entries(fieldMap).reduce((updateFields, [inputKey, databaseKey]) => {
+    if (Object.prototype.hasOwnProperty.call(body, inputKey)) {
+      updateFields[databaseKey] = mapped[databaseKey]
     }
+    return updateFields
+  }, {})
+
+  if (Object.prototype.hasOwnProperty.call(body, 'status')) {
+    update.published_at = mapped.published_at
   }
 
   return update

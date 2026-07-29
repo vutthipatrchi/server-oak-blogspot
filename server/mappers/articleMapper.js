@@ -1,7 +1,8 @@
-const articleCategories = ['Thinker', 'Writer', 'Literature']
+export const ARTICLE_CATEGORIES = ['Thinker', 'Writer', 'Literature']
+export const ARTICLE_STATUSES = ['draft', 'published']
 
 function toCategory(value) {
-  return articleCategories.includes(value) ? value : 'Thinker'
+  return ARTICLE_CATEGORIES.includes(value) ? value : 'Thinker'
 }
 
 function toSections(value) {

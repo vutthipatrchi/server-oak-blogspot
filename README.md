@@ -23,3 +23,17 @@ The server listens on `http://localhost:4000` by default.
 Write routes require both `SUPABASE_SERVICE_ROLE_KEY` and an `x-admin-api-key` header matching `ADMIN_API_KEY`.
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` in frontend code.
+
+## Architecture
+
+Requests flow through these layers:
+
+1. `routes/` defines paths, methods, middleware, and controllers.
+2. `middleware/` handles authentication, validation, and errors.
+3. `controllers/` translates HTTP requests and responses.
+4. `services/` contains business rules and does not access `req` or `res`.
+5. `repositories/` is the only application layer that queries Supabase tables.
+6. `mappers/` translates between database rows and API models.
+
+Health and notification endpoints use controllers directly because they do not
+need database repositories or business services.

@@ -9,6 +9,18 @@ export function notFoundHandler(_req, res) {
 }
 
 export function errorHandler(error, _req, res, _next) {
+  if (error.statusCode) {
+    return res.status(error.statusCode).json({ error: error.message })
+  }
+
+  if (error.code === '23505') {
+    return res.status(409).json({ error: 'A record with this value already exists.' })
+  }
+
+  if (error.code === '23503') {
+    return res.status(409).json({ error: 'This record is still referenced by other data.' })
+  }
+
   console.error(error)
   res.status(500).json({ error: 'Unexpected server error.' })
 }

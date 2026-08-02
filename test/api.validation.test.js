@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
+import axios from 'axios'
 
 process.env.SUPABASE_URL = 'https://example.supabase.co'
 process.env.SUPABASE_ANON_KEY = 'test-anon-key'
@@ -27,40 +28,58 @@ after(async () => {
 })
 
 test('GET /health reports that the server is running', async () => {
-  const response = await fetch(`${baseUrl}/health`)
+  const response = await axios.get(`${baseUrl}/health`)
   assert.equal(response.status, 200)
-  assert.deepEqual(await response.json(), { status: 'ok' })
+  assert.deepEqual(response.data, { status: 'ok' })
+})
+
+test('GET / describes the API and its public endpoints', async () => {
+  const response = await axios.get(baseUrl)
+  assert.equal(response.status, 200)
+  assert.deepEqual(response.data, {
+    name: 'server-oak-blogspot',
+    status: 'ok',
+    endpoints: {
+      health: '/health',
+      apiHealth: '/api/health',
+      articles: '/api/articles',
+    },
+  })
 })
 
 test('article filters reject unsupported values', async () => {
-  const response = await fetch(`${baseUrl}/api/articles?status=invalid`)
+  const response = await axios.get(`${baseUrl}/api/articles?status=invalid`, {
+    validateStatus: () => true,
+  })
   assert.equal(response.status, 400)
-  assert.deepEqual(await response.json(), { error: 'status must be draft or published.' })
+  assert.deepEqual(response.data, { error: 'status must be draft or published.' })
 })
 
 test('article IDs must be positive integers', async () => {
-  const response = await fetch(`${baseUrl}/api/articles/not-a-number`)
+  const response = await axios.get(`${baseUrl}/api/articles/not-a-number`, {
+    validateStatus: () => true,
+  })
   assert.equal(response.status, 400)
-  assert.deepEqual(await response.json(), { error: 'id must be a positive integer.' })
+  assert.deepEqual(response.data, { error: 'id must be a positive integer.' })
 })
 
 test('article creation validates required fields before database access', async () => {
-  const response = await fetch(`${baseUrl}/api/articles`, {
-    method: 'POST',
+  const response = await axios.post(`${baseUrl}/api/articles`, {}, {
     headers: {
-      'Content-Type': 'application/json',
       'x-admin-api-key': 'test-admin-key',
     },
-    body: JSON.stringify({}),
+    validateStatus: () => true,
   })
   assert.equal(response.status, 400)
-  assert.deepEqual(await response.json(), {
+  assert.deepEqual(response.data, {
     error: 'title, excerpt, and author are required.',
   })
 })
 
 test('unknown routes return a JSON 404 response', async () => {
-  const response = await fetch(`${baseUrl}/unknown`)
+  const response = await axios.get(`${baseUrl}/unknown`, {
+    validateStatus: () => true,
+  })
   assert.equal(response.status, 404)
-  assert.deepEqual(await response.json(), { error: 'Route not found.' })
+  assert.deepEqual(response.data, { error: 'Route not found.' })
 })

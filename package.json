@@ -6,10 +6,12 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
+    "import:articles": "node --experimental-strip-types scripts/importArticles.mjs",
     "test": "node --test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.2",
+    "axios": "^1.19.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"

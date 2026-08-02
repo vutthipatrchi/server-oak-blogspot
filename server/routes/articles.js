@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import * as articleController from '../controllers/articleController.js'
 import { requireAdmin, requireSupabase } from '../middleware/auth.js'
-import { asyncHandler } from '../middleware/error.js'
 import {
   validateArticleFilters,
   validateCreateArticle,
@@ -13,24 +12,24 @@ export const articlesRouter = Router()
 
 articlesRouter.use(requireSupabase)
 
-articlesRouter.get('/', validateArticleFilters, asyncHandler(articleController.list))
-articlesRouter.get('/:id', validateIdParam, asyncHandler(articleController.getById))
+articlesRouter.get('/', validateArticleFilters, articleController.list)
+articlesRouter.get('/:id', validateIdParam, articleController.getById)
 articlesRouter.post(
   '/',
   requireAdmin,
   validateCreateArticle,
-  asyncHandler(articleController.create),
+  articleController.create,
 )
 articlesRouter.patch(
   '/:id',
   requireAdmin,
   validateIdParam,
   validateUpdateArticle,
-  asyncHandler(articleController.update),
+  articleController.update,
 )
 articlesRouter.delete(
   '/:id',
   requireAdmin,
   validateIdParam,
-  asyncHandler(articleController.remove),
+  articleController.remove,
 )

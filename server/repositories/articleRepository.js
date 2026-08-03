@@ -3,7 +3,7 @@ import { supabase } from '../supabase.js'
 export const articleSelect = `
   id, category, tags, title, status, excerpt, image_url, author, author_avatar,
   author_bio, display_date, published_at, likes, sections, source,
-  comments (id, member_id, author, avatar, display_date, created_at, text)
+  comments (id, author, avatar, display_date, created_at, text)
 `
 
 export async function findArticles({ status, category, search }) {

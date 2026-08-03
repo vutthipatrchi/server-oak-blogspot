@@ -1,6 +1,7 @@
 # server-oak-blogspot
 
-Express API extracted from the `oak-blogspot` project. It stores articles and comments in Supabase.
+Express API for the `oak-blogspot` frontend. It stores members, articles,
+comments, likes, categories, and profiles in Supabase.
 
 ## Setup
 
@@ -8,6 +9,8 @@ Express API extracted from the `oak-blogspot` project. It stores articles and co
 2. Run `supabase/schema.sql` in the Supabase SQL Editor.
 3. Copy `.env.example` to `.env` and fill in the values.
 4. Start development mode with `npm run dev`, or start normally with `npm start`.
+5. Optionally import the frontend seed articles into an empty database with
+   `npm run import:articles`.
 
 The server listens on `http://localhost:4000` by default.
 
@@ -19,8 +22,20 @@ The server listens on `http://localhost:4000` by default.
 - `POST /api/articles`
 - `PATCH /api/articles/:id`
 - `DELETE /api/articles/:id`
+- `POST /api/articles/:id/comments`
+- `DELETE /api/articles/:id/comments/:commentId`
+- `POST /api/articles/:id/like`
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `PATCH /api/auth/profile`
+- `POST /api/auth/password`
+- `GET/POST/PATCH/DELETE /api/categories`
+- `GET/PUT /api/profile`
 
-Write routes require both `SUPABASE_SERVICE_ROLE_KEY` and an `x-admin-api-key` header matching `ADMIN_API_KEY`.
+Member routes require a Supabase access token in the `Authorization: Bearer`
+header. Admin write routes accept an authenticated admin user. The
+`x-admin-api-key` header remains available for trusted server-to-server jobs.
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` in frontend code.
 

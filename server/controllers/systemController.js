@@ -8,6 +8,7 @@ export function apiInfo(_req, res) {
       health: '/health',
       apiHealth: '/api/health',
       articles: '/api/articles',
+      auth: '/api/auth',
       categories: '/api/categories',
       profile: '/api/profile',
       notifications: '/api/notifications',

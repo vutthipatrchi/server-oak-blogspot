@@ -3,6 +3,7 @@ import express from 'express'
 import { apiInfo, basicHealth } from './controllers/systemController.js'
 import { errorHandler, notFoundHandler } from './middleware/error.js'
 import { articlesRouter } from './routes/articles.js'
+import { authRouter } from './routes/auth.js'
 import { categoriesRouter } from './routes/categories.js'
 import { profileRouter } from './routes/profile.js'
 import { systemRouter } from './routes/system.js'
@@ -18,6 +19,7 @@ app.get('/', apiInfo)
 app.get('/health', basicHealth)
 
 app.use('/api/articles', articlesRouter)
+app.use('/api/auth', authRouter)
 app.use('/api/categories', categoriesRouter)
 app.use('/api/profile', profileRouter)
 app.use('/api', systemRouter)

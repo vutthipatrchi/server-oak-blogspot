@@ -43,6 +43,7 @@ test('GET / describes the API and its public endpoints', async () => {
       health: '/health',
       apiHealth: '/api/health',
       articles: '/api/articles',
+      auth: '/api/auth',
       categories: '/api/categories',
       profile: '/api/profile',
       notifications: '/api/notifications',
@@ -80,7 +81,7 @@ test('article creation validates required fields before database access', async 
   })
 })
 
-test('article writes reject missing and incorrect admin API keys', async () => {
+test('article writes reject missing and incorrect admin credentials', async () => {
   const input = {
     title: 'Test article',
     excerpt: 'Test excerpt',
@@ -93,7 +94,7 @@ test('article writes reject missing and incorrect admin API keys', async () => {
       validateStatus: () => true,
     })
     assert.equal(response.status, 401)
-    assert.deepEqual(response.data, { error: 'Admin API key is required.' })
+    assert.deepEqual(response.data, { error: 'Authentication is required.' })
   }
 })
 
@@ -121,6 +122,27 @@ test('password reset validates the new password', async () => {
   })
   assert.equal(response.status, 400)
   assert.deepEqual(response.data, { error: 'newPassword must be at least 8 characters.' })
+})
+
+test('member authentication validates credentials and requires a session', async () => {
+  const invalidSignup = await axios.post(`${baseUrl}/api/auth/signup`, {
+    name: 'Member',
+    username: 'member',
+    email: 'invalid',
+    password: 'short',
+  }, { validateStatus: () => true })
+  assert.equal(invalidSignup.status, 400)
+  assert.deepEqual(invalidSignup.data, { error: 'a valid email is required.' })
+
+  const invalidLogin = await axios.post(`${baseUrl}/api/auth/login`, {}, {
+    validateStatus: () => true,
+  })
+  assert.equal(invalidLogin.status, 400)
+  assert.deepEqual(invalidLogin.data, { error: 'identifier and password are required.' })
+
+  const me = await axios.get(`${baseUrl}/api/auth/me`, { validateStatus: () => true })
+  assert.equal(me.status, 401)
+  assert.deepEqual(me.data, { error: 'Authentication is required.' })
 })
 
 test('unknown routes return a JSON 404 response', async () => {

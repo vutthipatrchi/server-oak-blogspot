@@ -76,3 +76,34 @@ export function validatePasswordReset(req, res, next) {
   }
   next()
 }
+
+export function validateSignUp(req, res, next) {
+  const { name, username, email, password } = req.body
+  if (!isNonEmptyString(name) || !isNonEmptyString(username)) {
+    return badRequest(res, 'name and username are required.')
+  }
+  if (!isNonEmptyString(email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return badRequest(res, 'a valid email is required.')
+  }
+  if (!isNonEmptyString(password) || password.length < 8) {
+    return badRequest(res, 'password must be at least 8 characters.')
+  }
+  next()
+}
+
+export function validateSignIn(req, res, next) {
+  if (!isNonEmptyString(req.body.identifier) || !isNonEmptyString(req.body.password)) {
+    return badRequest(res, 'identifier and password are required.')
+  }
+  if (req.body.audience !== undefined && !['member', 'admin'].includes(req.body.audience)) {
+    return badRequest(res, 'audience must be member or admin.')
+  }
+  next()
+}
+
+export function validateMemberProfile(req, res, next) {
+  if (!isNonEmptyString(req.body.name) || !isNonEmptyString(req.body.username)) {
+    return badRequest(res, 'name and username are required.')
+  }
+  next()
+}

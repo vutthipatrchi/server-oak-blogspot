@@ -71,8 +71,18 @@ create table if not exists public.admin_profiles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.member_profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  name text not null,
+  username text not null unique,
+  avatar_url text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.categories enable row level security;
 alter table public.admin_profiles enable row level security;
+alter table public.member_profiles enable row level security;
 
 drop policy if exists "Categories are readable by everyone" on public.categories;
 create policy "Categories are readable by everyone" on public.categories for select using (true);

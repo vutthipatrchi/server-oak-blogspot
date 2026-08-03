@@ -8,6 +8,10 @@ export function apiInfo(_req, res) {
       health: '/health',
       apiHealth: '/api/health',
       articles: '/api/articles',
+      categories: '/api/categories',
+      profile: '/api/profile',
+      notifications: '/api/notifications',
+      resetPassword: '/api/reset-password',
     },
   })
 }

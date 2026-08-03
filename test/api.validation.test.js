@@ -43,6 +43,10 @@ test('GET / describes the API and its public endpoints', async () => {
       health: '/health',
       apiHealth: '/api/health',
       articles: '/api/articles',
+      categories: '/api/categories',
+      profile: '/api/profile',
+      notifications: '/api/notifications',
+      resetPassword: '/api/reset-password',
     },
   })
 })
@@ -74,6 +78,49 @@ test('article creation validates required fields before database access', async 
   assert.deepEqual(response.data, {
     error: 'title, excerpt, and author are required.',
   })
+})
+
+test('article writes reject missing and incorrect admin API keys', async () => {
+  const input = {
+    title: 'Test article',
+    excerpt: 'Test excerpt',
+    author: 'Test author',
+  }
+
+  for (const headers of [{}, { 'x-admin-api-key': 'incorrect-key' }]) {
+    const response = await axios.post(`${baseUrl}/api/articles`, input, {
+      headers,
+      validateStatus: () => true,
+    })
+    assert.equal(response.status, 401)
+    assert.deepEqual(response.data, { error: 'Admin API key is required.' })
+  }
+})
+
+test('category and profile writes validate payloads before database access', async () => {
+  const config = {
+    headers: { 'x-admin-api-key': 'test-admin-key' },
+    validateStatus: () => true,
+  }
+  const category = await axios.post(`${baseUrl}/api/categories`, {}, config)
+  assert.equal(category.status, 400)
+  assert.deepEqual(category.data, { error: 'name is required.' })
+
+  const profile = await axios.put(`${baseUrl}/api/profile`, { name: 'Admin', email: 'invalid' }, config)
+  assert.equal(profile.status, 400)
+  assert.deepEqual(profile.data, { error: 'a valid email is required.' })
+})
+
+test('password reset validates the new password', async () => {
+  const response = await axios.post(`${baseUrl}/api/reset-password`, {
+    currentPassword: 'current-password',
+    newPassword: 'short',
+  }, {
+    headers: { 'x-admin-api-key': 'test-admin-key' },
+    validateStatus: () => true,
+  })
+  assert.equal(response.status, 400)
+  assert.deepEqual(response.data, { error: 'newPassword must be at least 8 characters.' })
 })
 
 test('unknown routes return a JSON 404 response', async () => {

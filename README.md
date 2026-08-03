@@ -33,6 +33,10 @@ The server listens on `http://localhost:4000` by default.
 - `GET/POST/PATCH/DELETE /api/categories`
 - `GET/PUT /api/profile`
 
+Run `npm run smoke:release` against a configured Supabase project to verify the
+complete authentication, profile, article, comment, and like flow. The command
+creates temporary data and removes it before exiting.
+
 Member routes require a Supabase access token in the `Authorization: Bearer`
 header. Admin write routes accept an authenticated admin user. The
 `x-admin-api-key` header remains available for trusted server-to-server jobs.

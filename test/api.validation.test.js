@@ -145,6 +145,19 @@ test('member authentication validates credentials and requires a session', async
   assert.deepEqual(me.data, { error: 'Authentication is required.' })
 })
 
+test('article engagement endpoints require member authentication', async () => {
+  const requests = [
+    axios.post(`${baseUrl}/api/articles/1/comments`, { text: 'Hello' }, { validateStatus: () => true }),
+    axios.post(`${baseUrl}/api/articles/1/like`, undefined, { validateStatus: () => true }),
+    axios.delete(`${baseUrl}/api/articles/1/comments/1`, { validateStatus: () => true }),
+  ]
+  const responses = await Promise.all(requests)
+  for (const response of responses) {
+    assert.equal(response.status, 401)
+    assert.deepEqual(response.data, { error: 'Authentication is required.' })
+  }
+})
+
 test('unknown routes return a JSON 404 response', async () => {
   const response = await axios.get(`${baseUrl}/unknown`, {
     validateStatus: () => true,

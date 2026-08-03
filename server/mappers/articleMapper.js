@@ -33,9 +33,10 @@ function toSource(value) {
     : undefined
 }
 
-function toComment(row) {
+export function toComment(row) {
   return {
     id: row.id,
+    memberId: row.member_id ?? null,
     author: row.author ?? 'Anonymous',
     avatar: row.avatar ?? '',
     date: row.display_date ?? row.created_at ?? '',

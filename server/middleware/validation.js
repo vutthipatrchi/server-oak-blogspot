@@ -107,3 +107,19 @@ export function validateMemberProfile(req, res, next) {
   }
   next()
 }
+
+export function validateComment(req, res, next) {
+  if (!isNonEmptyString(req.body.text)) return badRequest(res, 'comment text is required.')
+  if (req.body.text.trim().length > 2000) {
+    return badRequest(res, 'comment text must not exceed 2000 characters.')
+  }
+  next()
+}
+
+export function validateCommentId(req, res, next) {
+  const commentId = Number(req.params.commentId)
+  if (!Number.isSafeInteger(commentId) || commentId < 1) {
+    return badRequest(res, 'commentId must be a positive integer.')
+  }
+  next()
+}

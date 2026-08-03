@@ -80,9 +80,20 @@ create table if not exists public.member_profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.comments
+add column if not exists member_id uuid references auth.users(id) on delete set null;
+
+create table if not exists public.article_likes (
+  article_id bigint not null references public.articles(id) on delete cascade,
+  member_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (article_id, member_id)
+);
+
 alter table public.categories enable row level security;
 alter table public.admin_profiles enable row level security;
 alter table public.member_profiles enable row level security;
+alter table public.article_likes enable row level security;
 
 drop policy if exists "Categories are readable by everyone" on public.categories;
 create policy "Categories are readable by everyone" on public.categories for select using (true);

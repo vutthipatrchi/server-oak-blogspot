@@ -73,7 +73,11 @@ create table if not exists public.admin_profiles (
 
 alter table public.categories enable row level security;
 alter table public.admin_profiles enable row level security;
+
+drop policy if exists "Categories are readable by everyone" on public.categories;
 create policy "Categories are readable by everyone" on public.categories for select using (true);
+
+drop policy if exists "Admin profile is readable" on public.admin_profiles;
 create policy "Admin profile is readable" on public.admin_profiles for select using (true);
 
 drop policy if exists "Articles are readable by everyone" on public.articles;

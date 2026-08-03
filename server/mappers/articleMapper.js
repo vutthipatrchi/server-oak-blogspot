@@ -1,7 +1,8 @@
-const articleCategories = ['Thinker', 'Writer', 'Literature']
+export const ARTICLE_CATEGORIES = ['Thinker', 'Writer', 'Literature']
+export const ARTICLE_STATUSES = ['draft', 'published']
 
 function toCategory(value) {
-  return articleCategories.includes(value) ? value : 'Thinker'
+  return ARTICLE_CATEGORIES.includes(value) ? value : 'Thinker'
 }
 
 function toSections(value) {
@@ -32,16 +33,12 @@ function toSource(value) {
     : undefined
 }
 
-function formatDate(value) {
-  return value ?? ''
-}
-
 function toComment(row) {
   return {
     id: row.id,
     author: row.author ?? 'Anonymous',
     avatar: row.avatar ?? '',
-    date: row.display_date ?? formatDate(row.created_at),
+    date: row.display_date ?? row.created_at ?? '',
     text: row.text ?? '',
   }
 }
@@ -58,7 +55,7 @@ export function toArticle(row) {
     author: row.author ?? '',
     authorAvatar: row.author_avatar ?? '',
     authorBio: row.author_bio ?? [],
-    date: row.display_date ?? formatDate(row.published_at),
+    date: row.display_date ?? row.published_at ?? '',
     publishedAt: row.published_at ?? null,
     likes: row.likes ?? 0,
     sections: toSections(row.sections),

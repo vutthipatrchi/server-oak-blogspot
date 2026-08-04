@@ -7,6 +7,8 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "import:articles": "node --experimental-strip-types scripts/importArticles.mjs",
+    "migrate:article-images": "node scripts/migrateArticleImages.mjs",
+    "migrate:article-images:apply": "node scripts/migrateArticleImages.mjs --apply",
     "smoke:release": "node scripts/smokeRelease.mjs",
     "test": "node --test"
   },

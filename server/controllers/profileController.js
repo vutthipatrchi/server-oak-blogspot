@@ -6,6 +6,6 @@ export async function get(_req, res) {
 }
 
 export async function update(req, res) {
-  const profile = await profileService.saveAdminProfile(req.body)
+  const profile = await profileService.saveAdminProfile(req.user, req.body)
   res.json({ profile })
 }

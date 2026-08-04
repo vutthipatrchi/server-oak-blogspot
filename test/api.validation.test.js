@@ -6,6 +6,7 @@ process.env.SUPABASE_URL = 'https://example.supabase.co'
 process.env.SUPABASE_ANON_KEY = 'test-anon-key'
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key'
 process.env.ADMIN_API_KEY = 'test-admin-key'
+process.env.ADMIN_EMAIL = 'admin@example.com'
 
 const { app } = await import('../server/app.js')
 
@@ -47,7 +48,6 @@ test('GET / describes the API and its public endpoints', async () => {
       categories: '/api/categories',
       profile: '/api/profile',
       notifications: '/api/notifications',
-      resetPassword: '/api/reset-password',
     },
   })
 })
@@ -58,6 +58,12 @@ test('article filters reject unsupported values', async () => {
   })
   assert.equal(response.status, 400)
   assert.deepEqual(response.data, { error: 'status must be draft or published.' })
+
+  const invalidCategoryId = await axios.get(`${baseUrl}/api/articles?categoryId=0`, {
+    validateStatus: () => true,
+  })
+  assert.equal(invalidCategoryId.status, 400)
+  assert.deepEqual(invalidCategoryId.data, { error: 'categoryId must be a positive integer.' })
 })
 
 test('article IDs must be positive integers', async () => {
@@ -79,6 +85,30 @@ test('article creation validates required fields before database access', async 
   assert.deepEqual(response.data, {
     error: 'title, excerpt, and author are required.',
   })
+
+  const invalidImage = await axios.post(`${baseUrl}/api/articles`, {
+    title: 'Article',
+    excerpt: 'Excerpt',
+    author: 'Admin',
+    image: 'profiles/members/member-id/avatar.png',
+  }, {
+    headers: { 'x-admin-api-key': 'test-admin-key' },
+    validateStatus: () => true,
+  })
+  assert.equal(invalidImage.status, 400)
+  assert.deepEqual(invalidImage.data, { error: 'image must be a valid storage path.' })
+
+  const invalidCategoryId = await axios.post(`${baseUrl}/api/articles`, {
+    title: 'Article',
+    excerpt: 'Excerpt',
+    author: 'Admin',
+    categoryId: 0,
+  }, {
+    headers: { 'x-admin-api-key': 'test-admin-key' },
+    validateStatus: () => true,
+  })
+  assert.equal(invalidCategoryId.status, 400)
+  assert.deepEqual(invalidCategoryId.data, { error: 'categoryId must be a positive integer.' })
 })
 
 test('article writes reject missing and incorrect admin credentials', async () => {
@@ -98,6 +128,54 @@ test('article writes reject missing and incorrect admin credentials', async () =
   }
 })
 
+test('image uploads require admin access and validate the content type', async () => {
+  const unauthorized = await axios.post(
+    `${baseUrl}/api/uploads/articles`,
+    Buffer.from('image'),
+    { headers: { 'Content-Type': 'image/png' }, validateStatus: () => true },
+  )
+  assert.equal(unauthorized.status, 401)
+
+  const unsupported = await axios.post(
+    `${baseUrl}/api/uploads/articles`,
+    Buffer.from('file'),
+    {
+      headers: {
+        'Content-Type': 'text/plain',
+        'x-admin-api-key': 'test-admin-key',
+      },
+      validateStatus: () => true,
+    },
+  )
+  assert.equal(unsupported.status, 415)
+  assert.deepEqual(unsupported.data, {
+    error: 'Only JPEG, PNG, and WebP images are supported.',
+  })
+
+  const mismatched = await axios.post(
+    `${baseUrl}/api/uploads/articles`,
+    Buffer.from('not-a-real-png'),
+    {
+      headers: {
+        'Content-Type': 'image/png',
+        'x-admin-api-key': 'test-admin-key',
+      },
+      validateStatus: () => true,
+    },
+  )
+  assert.equal(mismatched.status, 415)
+  assert.deepEqual(mismatched.data, {
+    error: 'The file content does not match the selected image type.',
+  })
+
+  const memberProfile = await axios.post(
+    `${baseUrl}/api/uploads/profiles/members`,
+    Buffer.from('image'),
+    { headers: { 'Content-Type': 'image/png' }, validateStatus: () => true },
+  )
+  assert.equal(memberProfile.status, 401)
+})
+
 test('category and profile writes validate payloads before database access', async () => {
   const config = {
     headers: { 'x-admin-api-key': 'test-admin-key' },
@@ -110,18 +188,27 @@ test('category and profile writes validate payloads before database access', asy
   const profile = await axios.put(`${baseUrl}/api/profile`, { name: 'Admin', email: 'invalid' }, config)
   assert.equal(profile.status, 400)
   assert.deepEqual(profile.data, { error: 'a valid email is required.' })
+
+  const invalidAvatar = await axios.put(`${baseUrl}/api/profile`, {
+    name: 'Admin',
+    email: 'admin@example.com',
+    avatar_path: 'profiles/members/member-id/avatar.png',
+  }, config)
+  assert.equal(invalidAvatar.status, 400)
+  assert.deepEqual(invalidAvatar.data, {
+    error: 'avatar must be an administrator profile image path.',
+  })
 })
 
-test('password reset validates the new password', async () => {
-  const response = await axios.post(`${baseUrl}/api/reset-password`, {
+test('member password change validates the new password', async () => {
+  const response = await axios.post(`${baseUrl}/api/auth/password`, {
     currentPassword: 'current-password',
     newPassword: 'short',
   }, {
-    headers: { 'x-admin-api-key': 'test-admin-key' },
     validateStatus: () => true,
   })
-  assert.equal(response.status, 400)
-  assert.deepEqual(response.data, { error: 'newPassword must be at least 8 characters.' })
+  assert.equal(response.status, 401)
+  assert.deepEqual(response.data, { error: 'Authentication is required.' })
 })
 
 test('member authentication validates credentials and requires a session', async () => {
@@ -134,6 +221,17 @@ test('member authentication validates credentials and requires a session', async
   assert.equal(invalidSignup.status, 400)
   assert.deepEqual(invalidSignup.data, { error: 'a valid email is required.' })
 
+  const reservedAdminSignup = await axios.post(`${baseUrl}/api/auth/signup`, {
+    name: 'Admin',
+    username: 'admin-signup',
+    email: 'admin@example.com',
+    password: 'valid-password',
+  }, { validateStatus: () => true })
+  assert.equal(reservedAdminSignup.status, 403)
+  assert.deepEqual(reservedAdminSignup.data, {
+    error: 'This email is reserved for an administrator account.',
+  })
+
   const invalidLogin = await axios.post(`${baseUrl}/api/auth/login`, {}, {
     validateStatus: () => true,
   })
@@ -143,6 +241,18 @@ test('member authentication validates credentials and requires a session', async
   const me = await axios.get(`${baseUrl}/api/auth/me`, { validateStatus: () => true })
   assert.equal(me.status, 401)
   assert.deepEqual(me.data, { error: 'Authentication is required.' })
+
+  const refresh = await axios.post(`${baseUrl}/api/auth/refresh`, undefined, {
+    validateStatus: () => true,
+  })
+  assert.equal(refresh.status, 401)
+  assert.deepEqual(refresh.data, { error: 'Refresh session is missing or expired.' })
+
+  const logout = await axios.post(`${baseUrl}/api/auth/logout`, undefined, {
+    validateStatus: () => true,
+  })
+  assert.equal(logout.status, 401)
+  assert.deepEqual(logout.data, { error: 'Authentication is required.' })
 })
 
 test('article engagement endpoints require member authentication', async () => {
@@ -164,4 +274,23 @@ test('unknown routes return a JSON 404 response', async () => {
   })
   assert.equal(response.status, 404)
   assert.deepEqual(response.data, { error: 'Route not found.' })
+})
+
+test('login attempts are rate limited', async () => {
+  let limitedResponse
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const response = await axios.post(`${baseUrl}/api/auth/login`, {}, {
+      validateStatus: () => true,
+    })
+    if (response.status === 429) {
+      limitedResponse = response
+      break
+    }
+  }
+
+  assert.ok(limitedResponse)
+  assert.equal(limitedResponse.headers['retry-after'] !== undefined, true)
+  assert.deepEqual(limitedResponse.data, {
+    error: 'Too many login attempts. Please try again later.',
+  })
 })

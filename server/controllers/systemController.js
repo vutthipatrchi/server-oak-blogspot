@@ -12,7 +12,6 @@ export function apiInfo(_req, res) {
       categories: '/api/categories',
       profile: '/api/profile',
       notifications: '/api/notifications',
-      resetPassword: '/api/reset-password',
     },
   })
 }
@@ -46,8 +45,4 @@ export function notifications(_req, res) {
       },
     ],
   })
-}
-
-export function resetPassword(_req, res) {
-  res.json({ message: 'Password reset request completed.' })
 }

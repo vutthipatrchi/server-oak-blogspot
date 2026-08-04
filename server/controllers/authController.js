@@ -1,11 +1,31 @@
 import * as authService from '../services/authService.js'
+import { clearRefreshCookie, getRefreshToken, setRefreshCookie } from '../authCookie.js'
+
+function sendAuthResponse(res, result, status = 200) {
+  const { refreshToken, ...body } = result
+  if (refreshToken) setRefreshCookie(res, refreshToken)
+  res.status(status).json(body)
+}
 
 export async function signUp(req, res) {
-  res.status(201).json(await authService.signUp(req.body))
+  sendAuthResponse(res, await authService.signUp(req.body), 201)
 }
 
 export async function signIn(req, res) {
-  res.json(await authService.signIn(req.body))
+  sendAuthResponse(res, await authService.signIn(req.body))
+}
+
+export async function refresh(req, res) {
+  sendAuthResponse(res, await authService.refreshSession(getRefreshToken(req)))
+}
+
+export async function signOut(req, res) {
+  try {
+    await authService.signOut(req.accessToken)
+  } finally {
+    clearRefreshCookie(res)
+  }
+  res.status(204).send()
 }
 
 export async function me(req, res) {

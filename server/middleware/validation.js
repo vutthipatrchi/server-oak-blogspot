@@ -1,4 +1,5 @@
-import { ARTICLE_CATEGORIES, ARTICLE_STATUSES } from '../mappers/articleMapper.js'
+import { ARTICLE_STATUSES } from '../mappers/articleMapper.js'
+import { isManagedImagePath } from '../services/uploadService.js'
 
 function badRequest(res, message) {
   return res.status(400).json({ error: message })
@@ -6,6 +7,12 @@ function badRequest(res, message) {
 
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function isValidArticleImageReference(value) {
+  return (isManagedImagePath(value) && value.startsWith('articles/'))
+    || /^https:\/\//.test(value)
+    || /^\/article-images\//.test(value)
 }
 
 export function validateIdParam(req, res, next) {
@@ -20,19 +27,30 @@ export function validateArticleFilters(req, res, next) {
   if (req.query.status && !ARTICLE_STATUSES.includes(req.query.status)) {
     return badRequest(res, 'status must be draft or published.')
   }
-  if (req.query.category && !ARTICLE_CATEGORIES.includes(req.query.category)) {
-    return badRequest(res, 'category must be Thinker, Writer, or Literature.')
+  if (req.query.category !== undefined && !isNonEmptyString(req.query.category)) {
+    return badRequest(res, 'category cannot be empty.')
+  }
+  if (req.query.categoryId !== undefined
+    && (!Number.isSafeInteger(Number(req.query.categoryId)) || Number(req.query.categoryId) < 1)) {
+    return badRequest(res, 'categoryId must be a positive integer.')
   }
   next()
 }
 
 export function validateCreateArticle(req, res, next) {
-  const { title, excerpt, author, category, status } = req.body
-  if (!isNonEmptyString(title) || !isNonEmptyString(excerpt) || !isNonEmptyString(author)) {
+  const { title, excerpt, author, category, categoryId, status } = req.body
+  if (!isNonEmptyString(title) || !isNonEmptyString(excerpt) || (!req.user && !isNonEmptyString(author))) {
     return badRequest(res, 'title, excerpt, and author are required.')
   }
-  if (category !== undefined && !ARTICLE_CATEGORIES.includes(category)) {
-    return badRequest(res, 'category must be Thinker, Writer, or Literature.')
+  if (req.body.image && !isValidArticleImageReference(req.body.image)) {
+    return badRequest(res, 'image must be a valid storage path.')
+  }
+  if (categoryId === undefined && !isNonEmptyString(category)) {
+    return badRequest(res, 'categoryId is required.')
+  }
+  if (categoryId !== undefined
+    && (!Number.isSafeInteger(Number(categoryId)) || Number(categoryId) < 1)) {
+    return badRequest(res, 'categoryId must be a positive integer.')
   }
   if (status !== undefined && !ARTICLE_STATUSES.includes(status)) {
     return badRequest(res, 'status must be draft or published.')
@@ -41,15 +59,22 @@ export function validateCreateArticle(req, res, next) {
 }
 
 export function validateUpdateArticle(req, res, next) {
-  const { title, excerpt, author, category, status } = req.body
+  const { title, excerpt, author, category, categoryId, status } = req.body
   if (title !== undefined && !isNonEmptyString(title)) return badRequest(res, 'title cannot be empty.')
   if (excerpt !== undefined && !isNonEmptyString(excerpt)) return badRequest(res, 'excerpt cannot be empty.')
   if (author !== undefined && !isNonEmptyString(author)) return badRequest(res, 'author cannot be empty.')
-  if (category !== undefined && !ARTICLE_CATEGORIES.includes(category)) {
-    return badRequest(res, 'category must be Thinker, Writer, or Literature.')
+  if (category !== undefined && !isNonEmptyString(category)) {
+    return badRequest(res, 'category cannot be empty.')
+  }
+  if (categoryId !== undefined
+    && (!Number.isSafeInteger(Number(categoryId)) || Number(categoryId) < 1)) {
+    return badRequest(res, 'categoryId must be a positive integer.')
   }
   if (status !== undefined && !ARTICLE_STATUSES.includes(status)) {
     return badRequest(res, 'status must be draft or published.')
+  }
+  if (req.body.image && !isValidArticleImageReference(req.body.image)) {
+    return badRequest(res, 'image must be a valid storage path.')
   }
   next()
 }
@@ -63,6 +88,12 @@ export function validateProfile(req, res, next) {
   if (!isNonEmptyString(req.body.name)) return badRequest(res, 'name is required.')
   if (!isNonEmptyString(req.body.email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.email)) {
     return badRequest(res, 'a valid email is required.')
+  }
+  const avatarPath = req.body.avatar_path ?? req.body.avatar_url
+  if (avatarPath
+    && !(isManagedImagePath(avatarPath) && avatarPath.startsWith('profiles/admins/'))
+    && !/^https:\/\//.test(avatarPath)) {
+    return badRequest(res, 'avatar must be an administrator profile image path.')
   }
   next()
 }
@@ -104,6 +135,12 @@ export function validateSignIn(req, res, next) {
 export function validateMemberProfile(req, res, next) {
   if (!isNonEmptyString(req.body.name) || !isNonEmptyString(req.body.username)) {
     return badRequest(res, 'name and username are required.')
+  }
+  if (req.body.avatar
+    && !(isManagedImagePath(req.body.avatar)
+      && req.body.avatar.startsWith(`profiles/members/${req.user.id}/`))
+    && !/^https:\/\//.test(req.body.avatar)) {
+    return badRequest(res, 'avatar must belong to the authenticated member.')
   }
   next()
 }

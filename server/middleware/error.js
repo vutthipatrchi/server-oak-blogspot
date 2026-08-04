@@ -3,6 +3,10 @@ export function notFoundHandler(_req, res) {
 }
 
 export function errorHandler(error, _req, res, _next) {
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'The uploaded file must not exceed 5 MB.' })
+  }
+
   if (error.statusCode) {
     return res.status(error.statusCode).json({ error: error.message })
   }

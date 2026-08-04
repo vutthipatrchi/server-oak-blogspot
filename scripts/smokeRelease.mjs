@@ -20,6 +20,11 @@ let accessToken
 let articleId
 let commentId
 let liked = false
+const uploadedPaths = []
+const onePixelPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64',
+)
 
 const authConfig = () => ({ headers: { Authorization: `Bearer ${accessToken}` } })
 
@@ -31,14 +36,66 @@ try {
     password,
   })
   userId = signup.data.member.id
-  accessToken = signup.data.session.accessToken
-  assert.ok(userId && accessToken)
+  assert.ok(userId)
+
+  if (!signup.data.session) {
+    const { error: confirmError } = await supabase.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+    })
+    assert.ifError(confirmError)
+  }
+
+  const initialLogin = await axios.post(`${baseUrl}/api/auth/login`, {
+    identifier: email,
+    password,
+    audience: 'member',
+  })
+  accessToken = initialLogin.data.session.accessToken
+  assert.ok(accessToken)
+
+  const refreshCookie = initialLogin.headers['set-cookie']?.[0]?.split(';')[0]
+  assert.ok(refreshCookie, 'Login must set the HttpOnly refresh cookie.')
+  const refreshed = await axios.post(`${baseUrl}/api/auth/refresh`, undefined, {
+    headers: { Cookie: refreshCookie },
+  })
+  accessToken = refreshed.data.session.accessToken
+  assert.ok(accessToken)
+
+  const articleImage = await axios.post(`${baseUrl}/api/uploads/articles`, onePixelPng, {
+    headers: {
+      'Content-Type': 'image/png',
+      'x-admin-api-key': process.env.ADMIN_API_KEY,
+    },
+  })
+  uploadedPaths.push(articleImage.data.path)
+  assert.match(articleImage.data.path, /^articles\/\d{4}\/\d{2}\/[\w-]+\.png$/)
+  assert.ok(articleImage.data.url)
+
+  const adminImage = await axios.post(`${baseUrl}/api/uploads/profiles/admins`, onePixelPng, {
+    headers: {
+      'Content-Type': 'image/png',
+      'x-admin-api-key': process.env.ADMIN_API_KEY,
+    },
+  })
+  uploadedPaths.push(adminImage.data.path)
+  assert.match(adminImage.data.path, /^profiles\/admins\/primary\/[\w-]+\.png$/)
+  assert.ok(adminImage.data.url)
+
+  const memberImage = await axios.post(`${baseUrl}/api/uploads/profiles/members`, onePixelPng, {
+    headers: { ...authConfig().headers, 'Content-Type': 'image/png' },
+  })
+  uploadedPaths.push(memberImage.data.path)
+  assert.match(memberImage.data.path, new RegExp(`^profiles/members/${userId}/[\\w-]+\\.png$`))
+  assert.ok(memberImage.data.url)
 
   const profile = await axios.patch(`${baseUrl}/api/auth/profile`, {
     ...signup.data.member,
     name: 'Release Smoke Test Updated',
+    avatar: memberImage.data.path,
   }, authConfig())
   assert.equal(profile.data.member.name, 'Release Smoke Test Updated')
+  assert.equal(profile.data.member.avatarPath, memberImage.data.path)
+  assert.ok(profile.data.member.avatar)
 
   await axios.post(`${baseUrl}/api/auth/password`, {
     currentPassword: password,
@@ -73,7 +130,9 @@ try {
   await axios.delete(`${baseUrl}/api/articles/${articleId}/comments/${commentId}`, authConfig())
   commentId = null
 
-  console.log('Release smoke test passed: auth, profile, password, articles, comments, and likes.')
+  await axios.post(`${baseUrl}/api/auth/logout`, undefined, authConfig())
+
+  console.log('Release smoke test passed: private storage, auth, profile, password, articles, comments, and likes.')
 } catch (error) {
   const detail = error.response?.data?.error ?? error.message ?? String(error)
   console.error(`Release smoke test failed: ${detail}`)
@@ -84,6 +143,9 @@ try {
   }
   if (commentId && articleId && accessToken) {
     await axios.delete(`${baseUrl}/api/articles/${articleId}/comments/${commentId}`, authConfig()).catch(() => {})
+  }
+  if (uploadedPaths.length) {
+    await supabase.storage.from(process.env.SUPABASE_IMAGE_BUCKET ?? 'oakblog').remove(uploadedPaths).catch(() => {})
   }
   if (userId) await supabase.auth.admin.deleteUser(userId).catch(() => {})
   await new Promise((resolve) => server.close(resolve))

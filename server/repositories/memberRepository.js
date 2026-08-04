@@ -2,7 +2,7 @@ import { supabase } from '../supabase.js'
 
 export async function findMemberProfile(userId) {
   const { data, error } = await supabase
-    .from('member_profiles')
+    .from('profiles')
     .select('*')
     .eq('id', userId)
     .maybeSingle()
@@ -13,7 +13,7 @@ export async function findMemberProfile(userId) {
 
 export async function findMemberProfileByUsername(username) {
   const { data, error } = await supabase
-    .from('member_profiles')
+    .from('profiles')
     .select('*')
     .eq('username', username)
     .maybeSingle()
@@ -24,7 +24,7 @@ export async function findMemberProfileByUsername(username) {
 
 export async function upsertMemberProfile(profile) {
   const { data, error } = await supabase
-    .from('member_profiles')
+    .from('profiles')
     .upsert(profile)
     .select()
     .single()

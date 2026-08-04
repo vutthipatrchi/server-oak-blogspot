@@ -5,7 +5,9 @@ import * as engagementRepository from '../repositories/engagementRepository.js'
 import * as memberRepository from '../repositories/memberRepository.js'
 
 async function ensureArticle(articleId) {
-  if (!await articleRepository.findArticleById(articleId)) throw new HttpError(404, 'Article not found.')
+  const article = await articleRepository.findArticleById(articleId)
+  if (!article) throw new HttpError(404, 'Article not found.')
+  return article
 }
 
 export async function addComment(articleId, user, text) {
@@ -27,12 +29,12 @@ export async function removeComment(articleId, commentId, userId) {
 }
 
 export async function toggleLike(articleId, userId) {
-  await ensureArticle(articleId)
+  const article = await ensureArticle(articleId)
   const existing = await engagementRepository.findLike(articleId, userId)
   if (existing) await engagementRepository.deleteLike(articleId, userId)
   else await engagementRepository.insertLike(articleId, userId)
 
-  const likes = await engagementRepository.countLikes(articleId)
+  const likes = Math.max(0, (article.likes ?? 0) + (existing ? -1 : 1))
   await engagementRepository.syncArticleLikeCount(articleId, likes)
   return { liked: !existing, likes }
 }

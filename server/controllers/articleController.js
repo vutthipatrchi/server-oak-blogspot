@@ -11,12 +11,12 @@ export async function getById(req, res) {
 }
 
 export async function create(req, res) {
-  const article = await articleService.createArticle(req.body)
+  const article = await articleService.createArticle(req.body, req.user)
   res.status(201).json({ article })
 }
 
 export async function update(req, res) {
-  const article = await articleService.updateArticle(Number(req.params.id), req.body)
+  const article = await articleService.updateArticle(Number(req.params.id), req.body, req.user)
   res.json({ article })
 }
 

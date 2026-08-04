@@ -20,6 +20,17 @@ export async function findCategoryById(id) {
   return data
 }
 
+export async function findCategoryByName(name) {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('name', name)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
 export async function insertCategory(category) {
   const { data, error } = await supabase
     .from('categories')

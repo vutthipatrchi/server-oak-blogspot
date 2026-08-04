@@ -1,19 +1,20 @@
 import { supabase } from '../supabase.js'
 
 export const articleSelect = `
-  id, category, tags, title, status, excerpt, image_url, author, author_avatar,
+  id, category_id, category_record:categories!articles_category_id_fkey(id, name, description),
+  tags, title, status, excerpt, image_url, author_id, author, author_avatar,
   author_bio, display_date, published_at, likes, sections, source,
-  comments (id, member_id, author, avatar, display_date, created_at, text)
+  comments (id, author, avatar, display_date, created_at, text)
 `
 
-export async function findArticles({ status, category, search }) {
+export async function findArticles({ status, categoryId, search }) {
   let query = supabase
     .from('articles')
     .select(articleSelect)
     .order('published_at', { ascending: false, nullsFirst: false })
 
   if (status) query = query.eq('status', status)
-  if (category) query = query.eq('category', category)
+  if (categoryId) query = query.eq('category_id', categoryId)
   if (search) query = query.ilike('title', `%${search}%`)
 
   const { data, error } = await query

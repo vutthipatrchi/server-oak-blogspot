@@ -34,11 +34,11 @@ function toPublishedDate(article) {
     : parsed.toISOString().slice(0, 10)
 }
 
-function toArticleRow(article) {
+function toArticleRow(article, categoryId) {
   const status = article.status ?? 'published'
 
   return {
-    category: article.category,
+    category_id: categoryId,
     tags: article.tags ?? [],
     title: article.title,
     status,
@@ -77,11 +77,20 @@ if (count !== 0) {
 const insertedArticleIds = []
 let insertedCommentCount = 0
 
+const { data: categoryRows, error: categoriesError } = await supabase
+  .from('categories')
+  .select('id, name')
+
+if (categoriesError) throw categoriesError
+const categoryIds = new Map(categoryRows.map((category) => [category.name, category.id]))
+
 try {
   for (const article of articles) {
+    const categoryId = categoryIds.get(article.category)
+    if (!categoryId) throw new Error(`Category not found: ${article.category}`)
     const { data: insertedArticle, error: articleError } = await supabase
       .from('articles')
-      .insert(toArticleRow(article))
+      .insert(toArticleRow(article, categoryId))
       .select('id')
       .single()
 

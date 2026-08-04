@@ -1,9 +1,4 @@
-export const ARTICLE_CATEGORIES = ['Thinker', 'Writer', 'Literature']
 export const ARTICLE_STATUSES = ['draft', 'published']
-
-function toCategory(value) {
-  return ARTICLE_CATEGORIES.includes(value) ? value : 'Thinker'
-}
 
 function toSections(value) {
   if (!Array.isArray(value)) return []
@@ -33,47 +28,55 @@ function toSource(value) {
     : undefined
 }
 
-export function toComment(row) {
+function resolveImage(value, signedUrls) {
+  return signedUrls.get(value) ?? value ?? ''
+}
+
+export function toComment(row, signedUrls = new Map()) {
   return {
     id: row.id,
     memberId: row.member_id ?? null,
     author: row.author ?? 'Anonymous',
-    avatar: row.avatar ?? '',
+    avatar: resolveImage(row.avatar, signedUrls),
     date: row.display_date ?? row.created_at ?? '',
     text: row.text ?? '',
   }
 }
 
-export function toArticle(row) {
+export function toArticle(row, signedUrls = new Map()) {
   return {
     id: row.id,
-    category: toCategory(row.category),
+    categoryId: row.category_id,
+    category: row.category_record?.name ?? row.category ?? '',
     tags: row.tags ?? [],
     title: row.title ?? '',
     status: row.status ?? (row.published_at ? 'published' : 'draft'),
     excerpt: row.excerpt ?? '',
-    image: row.image_url ?? '',
+    image: resolveImage(row.image_url, signedUrls),
+    imagePath: row.image_url ?? '',
+    authorId: row.author_id ?? null,
     author: row.author ?? '',
-    authorAvatar: row.author_avatar ?? '',
+    authorAvatar: resolveImage(row.author_avatar, signedUrls),
     authorBio: row.author_bio ?? [],
     date: row.display_date ?? row.published_at ?? '',
     publishedAt: row.published_at ?? null,
     likes: row.likes ?? 0,
     sections: toSections(row.sections),
     source: toSource(row.source),
-    comments: (row.comments ?? []).map(toComment),
+    comments: (row.comments ?? []).map((comment) => toComment(comment, signedUrls)),
   }
 }
 
 export function toArticleInsert(body) {
   const status = body.status === 'published' ? 'published' : 'draft'
   return {
-    category: toCategory(body.category),
+    category_id: body.categoryId ?? body.category_id,
     tags: Array.isArray(body.tags) ? body.tags.filter((tag) => typeof tag === 'string') : [],
     title: String(body.title ?? '').trim(),
     status,
     excerpt: String(body.excerpt ?? '').trim(),
     image_url: body.image ?? body.image_url ?? null,
+    author_id: body.authorId ?? body.author_id ?? null,
     author: String(body.author ?? '').trim(),
     author_avatar: body.authorAvatar ?? body.author_avatar ?? null,
     author_bio: Array.isArray(body.authorBio)
@@ -90,13 +93,16 @@ export function toArticleInsert(body) {
 export function toArticleUpdate(body) {
   const mapped = toArticleInsert(body)
   const fieldMap = {
-    category: 'category',
+    categoryId: 'category_id',
+    category_id: 'category_id',
     tags: 'tags',
     title: 'title',
     status: 'status',
     excerpt: 'excerpt',
     image: 'image_url',
     image_url: 'image_url',
+    authorId: 'author_id',
+    author_id: 'author_id',
     author: 'author',
     authorAvatar: 'author_avatar',
     author_avatar: 'author_avatar',

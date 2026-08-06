@@ -64,6 +64,24 @@ test('article filters reject unsupported values', async () => {
   })
   assert.equal(invalidCategoryId.status, 400)
   assert.deepEqual(invalidCategoryId.data, { error: 'categoryId must be a positive integer.' })
+
+  const invalidPage = await axios.get(`${baseUrl}/api/articles?page=0&limit=6`, {
+    validateStatus: () => true,
+  })
+  assert.equal(invalidPage.status, 400)
+  assert.deepEqual(invalidPage.data, { error: 'page must be a positive integer.' })
+
+  const invalidLimit = await axios.get(`${baseUrl}/api/articles?page=1&limit=101`, {
+    validateStatus: () => true,
+  })
+  assert.equal(invalidLimit.status, 400)
+  assert.deepEqual(invalidLimit.data, { error: 'limit must be an integer between 1 and 100.' })
+
+  const incompletePagination = await axios.get(`${baseUrl}/api/articles?limit=6`, {
+    validateStatus: () => true,
+  })
+  assert.equal(incompletePagination.status, 400)
+  assert.deepEqual(incompletePagination.data, { error: 'page and limit must be used together.' })
 })
 
 test('article IDs must be positive integers', async () => {

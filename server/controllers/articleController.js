@@ -1,8 +1,7 @@
 import * as articleService from '../services/articleService.js'
 
 export async function list(req, res) {
-  const articles = await articleService.listArticles(req.query)
-  res.json({ articles })
+  res.json(await articleService.listArticles(req.query))
 }
 
 export async function getById(req, res) {

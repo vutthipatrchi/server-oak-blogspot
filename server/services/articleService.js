@@ -35,15 +35,38 @@ async function authorFrom(user, input) {
 }
 
 export async function listArticles(filters) {
+  const page = filters.page === undefined ? undefined : Number(filters.page)
+  const limit = filters.limit === undefined ? undefined : Number(filters.limit)
   let categoryId
   if (filters.categoryId !== undefined) {
     categoryId = Number(filters.categoryId)
   } else if (filters.category) {
     const category = await categoryRepository.findCategoryByName(filters.category)
-    if (!category) return []
+    if (!category) {
+      return {
+        articles: [],
+        ...(limit ? { pagination: { page, limit, total: 0, hasMore: false } } : {}),
+      }
+    }
     categoryId = category.id
   }
-  return toArticles(await articleRepository.findArticles({ ...filters, categoryId }))
+  const { rows, total } = await articleRepository.findArticles({
+    ...filters,
+    categoryId,
+    page,
+    limit,
+  })
+  return {
+    articles: await toArticles(rows),
+    ...(limit ? {
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: page * limit < total,
+      },
+    } : {}),
+  }
 }
 
 export async function getArticle(id) {

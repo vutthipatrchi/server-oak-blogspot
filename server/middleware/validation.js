@@ -34,6 +34,19 @@ export function validateArticleFilters(req, res, next) {
     && (!Number.isSafeInteger(Number(req.query.categoryId)) || Number(req.query.categoryId) < 1)) {
     return badRequest(res, 'categoryId must be a positive integer.')
   }
+  if (req.query.page !== undefined
+    && (!Number.isSafeInteger(Number(req.query.page)) || Number(req.query.page) < 1)) {
+    return badRequest(res, 'page must be a positive integer.')
+  }
+  if (req.query.limit !== undefined
+    && (!Number.isSafeInteger(Number(req.query.limit))
+      || Number(req.query.limit) < 1
+      || Number(req.query.limit) > 100)) {
+    return badRequest(res, 'limit must be an integer between 1 and 100.')
+  }
+  if ((req.query.page === undefined) !== (req.query.limit === undefined)) {
+    return badRequest(res, 'page and limit must be used together.')
+  }
   next()
 }
 

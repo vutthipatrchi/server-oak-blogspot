@@ -28,7 +28,7 @@ The server listens on `http://localhost:4000` by default.
 ## API
 
 - `GET /api/health`
-- `GET /api/articles`
+- `GET /api/articles` (filters: `status`, `category`, `categoryId`, `search`; pagination: `page` + `limit`, maximum 100)
 - `GET /api/articles/:id`
 - `POST /api/articles`
 - `PATCH /api/articles/:id`
@@ -61,6 +61,10 @@ Set `OWNER_EMAIL` to the Supabase Auth account that owns the website. The older
 `ADMIN_EMAIL` setting remains a compatibility fallback.
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` in frontend code.
+
+Paginated article responses include an additional `pagination` object containing
+`page`, `limit`, `total`, and `hasMore`. Requests without `page` and `limit`
+remain backward compatible and return the complete matching article list.
 
 Enable **Confirm email** in Supabase Auth for verified registrations. Refresh
 tokens are rotated through an HttpOnly cookie; set `AUTH_COOKIE_SECURE=true` in

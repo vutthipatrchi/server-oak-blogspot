@@ -64,6 +64,24 @@ test('article filters reject unsupported values', async () => {
   })
   assert.equal(invalidCategoryId.status, 400)
   assert.deepEqual(invalidCategoryId.data, { error: 'categoryId must be a positive integer.' })
+
+  const invalidPage = await axios.get(`${baseUrl}/api/articles?page=0&limit=6`, {
+    validateStatus: () => true,
+  })
+  assert.equal(invalidPage.status, 400)
+  assert.deepEqual(invalidPage.data, { error: 'page must be a positive integer.' })
+
+  const invalidLimit = await axios.get(`${baseUrl}/api/articles?page=1&limit=101`, {
+    validateStatus: () => true,
+  })
+  assert.equal(invalidLimit.status, 400)
+  assert.deepEqual(invalidLimit.data, { error: 'limit must be an integer between 1 and 100.' })
+
+  const incompletePagination = await axios.get(`${baseUrl}/api/articles?limit=6`, {
+    validateStatus: () => true,
+  })
+  assert.equal(incompletePagination.status, 400)
+  assert.deepEqual(incompletePagination.data, { error: 'page and limit must be used together.' })
 })
 
 test('article IDs must be positive integers', async () => {
@@ -109,6 +127,44 @@ test('article creation validates required fields before database access', async 
   })
   assert.equal(invalidCategoryId.status, 400)
   assert.deepEqual(invalidCategoryId.data, { error: 'categoryId must be a positive integer.' })
+})
+
+test('article writes validate structured content and tags before database access', async () => {
+  const config = {
+    headers: { 'x-admin-api-key': 'test-admin-key' },
+    validateStatus: () => true,
+  }
+  const baseArticle = {
+    title: 'Article',
+    excerpt: 'Excerpt',
+    author: 'Admin',
+    categoryId: 1,
+  }
+
+  const emptyContent = await axios.post(`${baseUrl}/api/articles`, {
+    ...baseArticle,
+    sections: [],
+  }, config)
+  assert.equal(emptyContent.status, 400)
+  assert.deepEqual(emptyContent.data, { error: 'article content is required.' })
+
+  const tooManyTags = await axios.post(`${baseUrl}/api/articles`, {
+    ...baseArticle,
+    tags: Array.from({ length: 11 }, (_value, index) => `tag-${index}`),
+    sections: [{ title: '', paragraphs: ['Content'] }],
+  }, config)
+  assert.equal(tooManyTags.status, 400)
+  assert.deepEqual(tooManyTags.data, { error: 'tags must not contain more than 10 items.' })
+
+  const incompleteBullet = await axios.patch(`${baseUrl}/api/articles/1`, {
+    sections: [{
+      title: 'List',
+      paragraphs: [],
+      bullets: [{ term: 'Term', description: '' }],
+    }],
+  }, config)
+  assert.equal(incompleteBullet.status, 400)
+  assert.deepEqual(incompleteBullet.data, { error: 'each bullet must include a term and description.' })
 })
 
 test('article writes reject missing and incorrect admin credentials', async () => {

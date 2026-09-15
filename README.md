@@ -25,10 +25,26 @@ comments, likes, categories, and profiles in Supabase.
 
 The server listens on `http://localhost:4000` by default.
 
+## Draft access migration
+
+Existing databases must run `supabase/migrations/20260912000100_restrict_draft_reads.sql`
+to prevent direct database reads of drafts and their comments. Deploy the API
+and frontend changes together. Article GET requests without administrator
+credentials return published articles only; an explicit draft filter returns 403,
+and draft detail requests return 404. Owners/admins send a Bearer access token
+to read drafts; trusted jobs may use `x-admin-api-key`. Draft reads through the
+API require the service-role client because direct database reads are restricted
+to published content. Members cannot like or comment on drafts.
+
+Existing databases must also run
+`supabase/migrations/20260915000100_atomic_article_like_counts.sql` before deploying
+this API version. It reconciles existing counters and installs a database trigger
+so concurrent likes and unlikes update article totals atomically.
+
 ## API
 
 - `GET /api/health`
-- `GET /api/articles`
+- `GET /api/articles` (filters: `status`, `category`, `categoryId`, `search`; pagination: `page` + `limit`, maximum 100)
 - `GET /api/articles/:id`
 - `POST /api/articles`
 - `PATCH /api/articles/:id`
@@ -61,6 +77,10 @@ Set `OWNER_EMAIL` to the Supabase Auth account that owns the website. The older
 `ADMIN_EMAIL` setting remains a compatibility fallback.
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` in frontend code.
+
+Paginated article responses include an additional `pagination` object containing
+`page`, `limit`, `total`, and `hasMore`. Requests without `page` and `limit`
+remain backward compatible and return the complete matching article list.
 
 Enable **Confirm email** in Supabase Auth for verified registrations. Refresh
 tokens are rotated through an HttpOnly cookie; set `AUTH_COOKIE_SECURE=true` in

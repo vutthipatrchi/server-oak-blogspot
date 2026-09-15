@@ -94,6 +94,28 @@ create table if not exists public.article_likes (
   primary key (article_id, member_id)
 );
 
+create or replace function public.update_article_like_count()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    update public.articles set likes = likes + 1 where id = new.article_id;
+    return new;
+  end if;
+
+  update public.articles set likes = greatest(0, likes - 1) where id = old.article_id;
+  return old;
+end;
+$$;
+
+drop trigger if exists update_article_like_count on public.article_likes;
+create trigger update_article_like_count
+after insert or delete on public.article_likes
+for each row execute function public.update_article_like_count();
+
 alter table public.categories enable row level security;
 alter table public.profiles enable row level security;
 alter table public.article_likes enable row level security;
@@ -106,7 +128,14 @@ drop policy if exists "Users can read their own profile" on public.profiles;
 create policy "Users can read their own profile" on public.profiles for select using (auth.uid() = id);
 
 drop policy if exists "Articles are readable by everyone" on public.articles;
-create policy "Articles are readable by everyone" on public.articles for select using (true);
+drop policy if exists "Published articles are readable by everyone" on public.articles;
+create policy "Published articles are readable by everyone" on public.articles
+for select using (status = 'published');
 
 drop policy if exists "Comments are readable by everyone" on public.comments;
-create policy "Comments are readable by everyone" on public.comments for select using (true);
+drop policy if exists "Published article comments are readable by everyone" on public.comments;
+create policy "Published article comments are readable by everyone" on public.comments
+for select using (exists (
+  select 1 from public.articles
+  where articles.id = comments.article_id and articles.status = 'published'
+));

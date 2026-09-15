@@ -7,27 +7,35 @@ export const articleSelect = `
   comments (id, author, avatar, display_date, created_at, text)
 `
 
-export async function findArticles({ status, categoryId, search }) {
+export async function findArticles({ status, categoryId, search, page, limit }) {
   let query = supabase
     .from('articles')
-    .select(articleSelect)
+    .select(articleSelect, limit ? { count: 'exact' } : undefined)
     .order('published_at', { ascending: false, nullsFirst: false })
+    .order('id', { ascending: false })
 
   if (status) query = query.eq('status', status)
   if (categoryId) query = query.eq('category_id', categoryId)
-  if (search) query = query.ilike('title', `%${search}%`)
+  if (search) {
+    const safeSearch = search.replace(/[^\p{L}\p{N}\s-]/gu, ' ').trim()
+    if (safeSearch) {
+      query = query.or(`title.ilike.%${safeSearch}%,excerpt.ilike.%${safeSearch}%,author.ilike.%${safeSearch}%`)
+    }
+  }
+  if (limit) {
+    const from = (page - 1) * limit
+    query = query.range(from, from + limit - 1)
+  }
 
-  const { data, error } = await query
+  const { data, error, count } = await query
   if (error) throw error
-  return data ?? []
+  return { rows: data ?? [], total: count ?? data?.length ?? 0 }
 }
 
-export async function findArticleById(id) {
-  const { data, error } = await supabase
-    .from('articles')
-    .select(articleSelect)
-    .eq('id', id)
-    .maybeSingle()
+export async function findArticleById(id, status) {
+  let query = supabase.from('articles').select(articleSelect).eq('id', id)
+  if (status) query = query.eq('status', status)
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return data

@@ -1,12 +1,11 @@
 import * as articleService from '../services/articleService.js'
 
 export async function list(req, res) {
-  const articles = await articleService.listArticles(req.query)
-  res.json({ articles })
+  res.json(await articleService.listArticles(req.query, req.canReadDrafts))
 }
 
 export async function getById(req, res) {
-  const article = await articleService.getArticle(Number(req.params.id))
+  const article = await articleService.getArticle(Number(req.params.id), req.canReadDrafts)
   res.json({ article })
 }
 

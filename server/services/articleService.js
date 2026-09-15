@@ -34,7 +34,10 @@ async function authorFrom(user, input) {
   }
 }
 
-export async function listArticles(filters) {
+export async function listArticles(filters, canReadDrafts = false) {
+  if (!canReadDrafts && filters.status === 'draft') {
+    throw new HttpError(403, 'Administrator access is required to read drafts.')
+  }
   const page = filters.page === undefined ? undefined : Number(filters.page)
   const limit = filters.limit === undefined ? undefined : Number(filters.limit)
   let categoryId
@@ -52,6 +55,7 @@ export async function listArticles(filters) {
   }
   const { rows, total } = await articleRepository.findArticles({
     ...filters,
+    status: canReadDrafts ? filters.status : 'published',
     categoryId,
     page,
     limit,
@@ -69,8 +73,8 @@ export async function listArticles(filters) {
   }
 }
 
-export async function getArticle(id) {
-  const row = await articleRepository.findArticleById(id)
+export async function getArticle(id, canReadDrafts = false) {
+  const row = await articleRepository.findArticleById(id, canReadDrafts ? undefined : 'published')
   if (!row) throw new HttpError(404, 'Article not found.')
   return (await toArticles([row]))[0]
 }

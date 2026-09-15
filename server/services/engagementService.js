@@ -5,7 +5,7 @@ import * as engagementRepository from '../repositories/engagementRepository.js'
 import * as memberRepository from '../repositories/memberRepository.js'
 
 async function ensureArticle(articleId) {
-  const article = await articleRepository.findArticleById(articleId)
+  const article = await articleRepository.findArticleById(articleId, 'published')
   if (!article) throw new HttpError(404, 'Article not found.')
   return article
 }

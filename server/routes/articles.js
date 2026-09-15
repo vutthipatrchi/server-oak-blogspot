@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import * as articleController from '../controllers/articleController.js'
 import * as engagementController from '../controllers/engagementController.js'
-import { requireAdmin, requireMember, requireSupabase } from '../middleware/auth.js'
+import { requireAdmin, requireMember, requireSupabase, resolveArticleReadAccess } from '../middleware/auth.js'
 import {
   validateArticleFilters,
   validateComment,
@@ -15,8 +15,8 @@ export const articlesRouter = Router()
 
 articlesRouter.use(requireSupabase)
 
-articlesRouter.get('/', validateArticleFilters, articleController.list)
-articlesRouter.get('/:id', validateIdParam, articleController.getById)
+articlesRouter.get('/', validateArticleFilters, resolveArticleReadAccess, articleController.list)
+articlesRouter.get('/:id', validateIdParam, resolveArticleReadAccess, articleController.getById)
 articlesRouter.post(
   '/:id/comments', requireMember, validateIdParam, validateComment, engagementController.addComment,
 )

@@ -106,7 +106,14 @@ drop policy if exists "Users can read their own profile" on public.profiles;
 create policy "Users can read their own profile" on public.profiles for select using (auth.uid() = id);
 
 drop policy if exists "Articles are readable by everyone" on public.articles;
-create policy "Articles are readable by everyone" on public.articles for select using (true);
+drop policy if exists "Published articles are readable by everyone" on public.articles;
+create policy "Published articles are readable by everyone" on public.articles
+for select using (status = 'published');
 
 drop policy if exists "Comments are readable by everyone" on public.comments;
-create policy "Comments are readable by everyone" on public.comments for select using (true);
+drop policy if exists "Published article comments are readable by everyone" on public.comments;
+create policy "Published article comments are readable by everyone" on public.comments
+for select using (exists (
+  select 1 from public.articles
+  where articles.id = comments.article_id and articles.status = 'published'
+));

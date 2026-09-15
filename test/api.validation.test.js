@@ -129,6 +129,44 @@ test('article creation validates required fields before database access', async 
   assert.deepEqual(invalidCategoryId.data, { error: 'categoryId must be a positive integer.' })
 })
 
+test('article writes validate structured content and tags before database access', async () => {
+  const config = {
+    headers: { 'x-admin-api-key': 'test-admin-key' },
+    validateStatus: () => true,
+  }
+  const baseArticle = {
+    title: 'Article',
+    excerpt: 'Excerpt',
+    author: 'Admin',
+    categoryId: 1,
+  }
+
+  const emptyContent = await axios.post(`${baseUrl}/api/articles`, {
+    ...baseArticle,
+    sections: [],
+  }, config)
+  assert.equal(emptyContent.status, 400)
+  assert.deepEqual(emptyContent.data, { error: 'article content is required.' })
+
+  const tooManyTags = await axios.post(`${baseUrl}/api/articles`, {
+    ...baseArticle,
+    tags: Array.from({ length: 11 }, (_value, index) => `tag-${index}`),
+    sections: [{ title: '', paragraphs: ['Content'] }],
+  }, config)
+  assert.equal(tooManyTags.status, 400)
+  assert.deepEqual(tooManyTags.data, { error: 'tags must not contain more than 10 items.' })
+
+  const incompleteBullet = await axios.patch(`${baseUrl}/api/articles/1`, {
+    sections: [{
+      title: 'List',
+      paragraphs: [],
+      bullets: [{ term: 'Term', description: '' }],
+    }],
+  }, config)
+  assert.equal(incompleteBullet.status, 400)
+  assert.deepEqual(incompleteBullet.data, { error: 'each bullet must include a term and description.' })
+})
+
 test('article writes reject missing and incorrect admin credentials', async () => {
   const input = {
     title: 'Test article',

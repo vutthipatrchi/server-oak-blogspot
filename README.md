@@ -36,6 +36,11 @@ to read drafts; trusted jobs may use `x-admin-api-key`. Draft reads through the
 API require the service-role client because direct database reads are restricted
 to published content. Members cannot like or comment on drafts.
 
+Existing databases must also run
+`supabase/migrations/20260915000100_atomic_article_like_counts.sql` before deploying
+this API version. It reconciles existing counters and installs a database trigger
+so concurrent likes and unlikes update article totals atomically.
+
 ## API
 
 - `GET /api/health`

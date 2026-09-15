@@ -1,5 +1,5 @@
 import { HttpError } from '../errors/HttpError.js'
-import { toArticle, toArticleInsert, toArticleUpdate } from '../mappers/articleMapper.js'
+import { publicationUpdate, toArticle, toArticleInsert, toArticleUpdate } from '../mappers/articleMapper.js'
 import * as articleRepository from '../repositories/articleRepository.js'
 import * as categoryRepository from '../repositories/categoryRepository.js'
 import * as memberRepository from '../repositories/memberRepository.js'
@@ -95,7 +95,9 @@ export async function createArticle(input, user) {
 export async function updateArticle(id, input, user) {
   const hasImage = Object.prototype.hasOwnProperty.call(input, 'image')
     || Object.prototype.hasOwnProperty.call(input, 'image_url')
-  const existing = hasImage ? await articleRepository.findArticleById(id) : null
+  const hasStatus = Object.prototype.hasOwnProperty.call(input, 'status')
+  const existing = hasImage || hasStatus ? await articleRepository.findArticleById(id) : null
+  if ((hasImage || hasStatus) && !existing) throw new HttpError(404, 'Article not found.')
   let mappedInput = input
   if (input.categoryId !== undefined || input.category !== undefined) {
     const category = input.categoryId !== undefined
@@ -104,7 +106,11 @@ export async function updateArticle(id, input, user) {
     if (!category) throw new HttpError(400, 'Category not found.')
     mappedInput = { ...input, categoryId: category.id }
   }
-  const update = { ...toArticleUpdate(mappedInput), ...await authorFrom(user, input) }
+  const update = {
+    ...toArticleUpdate(mappedInput),
+    ...(hasStatus ? publicationUpdate(existing.status, input.status) : {}),
+    ...await authorFrom(user, input),
+  }
   if (Object.keys(update).length === 0) {
     throw new HttpError(400, 'At least one article field is required.')
   }

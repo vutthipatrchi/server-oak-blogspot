@@ -34,7 +34,9 @@ export async function deleteLike(articleId, memberId) {
   if (error) throw error
 }
 
-export async function syncArticleLikeCount(articleId, likes) {
-  const { error } = await supabase.from('articles').update({ likes }).eq('id', articleId)
+export async function getArticleLikeCount(articleId) {
+  const { data, error } = await supabase.from('articles').select('likes')
+    .eq('id', articleId).maybeSingle()
   if (error) throw error
+  return data?.likes ?? 0
 }

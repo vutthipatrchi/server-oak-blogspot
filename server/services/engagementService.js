@@ -29,12 +29,11 @@ export async function removeComment(articleId, commentId, userId) {
 }
 
 export async function toggleLike(articleId, userId) {
-  const article = await ensureArticle(articleId)
+  await ensureArticle(articleId)
   const existing = await engagementRepository.findLike(articleId, userId)
   if (existing) await engagementRepository.deleteLike(articleId, userId)
   else await engagementRepository.insertLike(articleId, userId)
 
-  const likes = Math.max(0, (article.likes ?? 0) + (existing ? -1 : 1))
-  await engagementRepository.syncArticleLikeCount(articleId, likes)
+  const likes = await engagementRepository.getArticleLikeCount(articleId)
   return { liked: !existing, likes }
 }

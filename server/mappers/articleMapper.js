@@ -84,7 +84,7 @@ export function toArticleInsert(body) {
       : [],
     display_date: body.date ?? body.display_date ?? null,
     published_at: status === 'published' ? (body.published_at ?? new Date().toISOString()) : null,
-    likes: Number.isInteger(body.likes) ? body.likes : 0,
+    likes: 0,
     sections: toSections(body.sections),
     source: toSource(body.source) ?? null,
   }
@@ -111,7 +111,6 @@ export function toArticleUpdate(body) {
     date: 'display_date',
     display_date: 'display_date',
     published_at: 'published_at',
-    likes: 'likes',
     sections: 'sections',
     source: 'source',
   }
@@ -123,9 +122,10 @@ export function toArticleUpdate(body) {
     return updateFields
   }, {})
 
-  if (Object.prototype.hasOwnProperty.call(body, 'status')) {
-    update.published_at = mapped.published_at
-  }
-
   return update
+}
+
+export function publicationUpdate(currentStatus, nextStatus, now = new Date().toISOString()) {
+  if (currentStatus === nextStatus) return {}
+  return { published_at: nextStatus === 'published' ? now : null }
 }

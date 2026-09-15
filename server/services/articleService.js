@@ -1,5 +1,5 @@
 import { HttpError } from '../errors/HttpError.js'
-import { toArticle, toArticleInsert, toArticleUpdate } from '../mappers/articleMapper.js'
+import { publicationUpdate, toArticle, toArticleInsert, toArticleUpdate } from '../mappers/articleMapper.js'
 import * as articleRepository from '../repositories/articleRepository.js'
 import * as categoryRepository from '../repositories/categoryRepository.js'
 import * as memberRepository from '../repositories/memberRepository.js'
@@ -34,7 +34,10 @@ async function authorFrom(user, input) {
   }
 }
 
-export async function listArticles(filters) {
+export async function listArticles(filters, canReadDrafts = false) {
+  if (!canReadDrafts && filters.status === 'draft') {
+    throw new HttpError(403, 'Administrator access is required to read drafts.')
+  }
   const page = filters.page === undefined ? undefined : Number(filters.page)
   const limit = filters.limit === undefined ? undefined : Number(filters.limit)
   let categoryId
@@ -52,6 +55,7 @@ export async function listArticles(filters) {
   }
   const { rows, total } = await articleRepository.findArticles({
     ...filters,
+    status: canReadDrafts ? filters.status : 'published',
     categoryId,
     page,
     limit,
@@ -69,8 +73,8 @@ export async function listArticles(filters) {
   }
 }
 
-export async function getArticle(id) {
-  const row = await articleRepository.findArticleById(id)
+export async function getArticle(id, canReadDrafts = false) {
+  const row = await articleRepository.findArticleById(id, canReadDrafts ? undefined : 'published')
   if (!row) throw new HttpError(404, 'Article not found.')
   return (await toArticles([row]))[0]
 }
@@ -91,7 +95,9 @@ export async function createArticle(input, user) {
 export async function updateArticle(id, input, user) {
   const hasImage = Object.prototype.hasOwnProperty.call(input, 'image')
     || Object.prototype.hasOwnProperty.call(input, 'image_url')
-  const existing = hasImage ? await articleRepository.findArticleById(id) : null
+  const hasStatus = Object.prototype.hasOwnProperty.call(input, 'status')
+  const existing = hasImage || hasStatus ? await articleRepository.findArticleById(id) : null
+  if ((hasImage || hasStatus) && !existing) throw new HttpError(404, 'Article not found.')
   let mappedInput = input
   if (input.categoryId !== undefined || input.category !== undefined) {
     const category = input.categoryId !== undefined
@@ -100,7 +106,11 @@ export async function updateArticle(id, input, user) {
     if (!category) throw new HttpError(400, 'Category not found.')
     mappedInput = { ...input, categoryId: category.id }
   }
-  const update = { ...toArticleUpdate(mappedInput), ...await authorFrom(user, input) }
+  const update = {
+    ...toArticleUpdate(mappedInput),
+    ...(hasStatus ? publicationUpdate(existing.status, input.status) : {}),
+    ...await authorFrom(user, input),
+  }
   if (Object.keys(update).length === 0) {
     throw new HttpError(400, 'At least one article field is required.')
   }

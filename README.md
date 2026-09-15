@@ -25,6 +25,22 @@ comments, likes, categories, and profiles in Supabase.
 
 The server listens on `http://localhost:4000` by default.
 
+## Draft access migration
+
+Existing databases must run `supabase/migrations/20260912000100_restrict_draft_reads.sql`
+to prevent direct database reads of drafts and their comments. Deploy the API
+and frontend changes together. Article GET requests without administrator
+credentials return published articles only; an explicit draft filter returns 403,
+and draft detail requests return 404. Owners/admins send a Bearer access token
+to read drafts; trusted jobs may use `x-admin-api-key`. Draft reads through the
+API require the service-role client because direct database reads are restricted
+to published content. Members cannot like or comment on drafts.
+
+Existing databases must also run
+`supabase/migrations/20260915000100_atomic_article_like_counts.sql` before deploying
+this API version. It reconciles existing counters and installs a database trigger
+so concurrent likes and unlikes update article totals atomically.
+
 ## API
 
 - `GET /api/health`

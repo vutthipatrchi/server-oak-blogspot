@@ -32,12 +32,10 @@ export async function findArticles({ status, categoryId, search, page, limit }) 
   return { rows: data ?? [], total: count ?? data?.length ?? 0 }
 }
 
-export async function findArticleById(id) {
-  const { data, error } = await supabase
-    .from('articles')
-    .select(articleSelect)
-    .eq('id', id)
-    .maybeSingle()
+export async function findArticleById(id, status) {
+  let query = supabase.from('articles').select(articleSelect).eq('id', id)
+  if (status) query = query.eq('status', status)
+  const { data, error } = await query.maybeSingle()
 
   if (error) throw error
   return data

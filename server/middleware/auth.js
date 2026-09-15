@@ -40,6 +40,26 @@ export async function requireMember(req, res, next) {
   return next()
 }
 
+// Public reads gain draft access only after verifying administrator credentials.
+export async function resolveArticleReadAccess(req, res, next) {
+  req.canReadDrafts = false
+  res.set('Cache-Control', 'private, no-store')
+  if (matchesSecret(req.get('x-admin-api-key'), process.env.ADMIN_API_KEY)) {
+    req.canReadDrafts = true
+    return next()
+  }
+  if (!req.get('authorization')) return next()
+
+  return requireMember(req, res, async () => {
+    const profile = await memberRepository.findMemberProfile(req.user.id)
+    const ownerEmail = configuredOwnerEmail()
+    req.canReadDrafts = Boolean(canManageArticles(profile?.role)
+      || canManageArticles(req.user?.app_metadata?.role)
+      || (ownerEmail && req.user?.email?.toLowerCase() === ownerEmail))
+    return next()
+  })
+}
+
 export async function requireAdmin(req, res, next) {
   const adminApiKey = process.env.ADMIN_API_KEY
   const requestKey = req.get('x-admin-api-key')

@@ -36,6 +36,8 @@ export function toComment(row, signedUrls = new Map()) {
   return {
     id: row.id,
     memberId: row.member_id ?? null,
+    parentId: row.reply_to_comment_id ?? null,
+    likes: row.comment_likes?.[0]?.count ?? row.likes ?? 0,
     author: row.author ?? 'Anonymous',
     avatar: resolveImage(row.avatar, signedUrls),
     date: row.display_date ?? row.created_at ?? '',

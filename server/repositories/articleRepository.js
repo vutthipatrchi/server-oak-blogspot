@@ -4,7 +4,7 @@ export const articleSelect = `
   id, category_id, category_record:categories!articles_category_id_fkey(id, name, description),
   tags, title, status, excerpt, image_url, author_id, author, author_avatar,
   author_bio, display_date, published_at, likes, sections, source,
-  comments (id, author, avatar, display_date, created_at, text)
+  comments (id, member_id, reply_to_comment_id, author, avatar, display_date, created_at, text, comment_likes(count))
 `
 
 export async function findArticles({ status, categoryId, search, page, limit }) {

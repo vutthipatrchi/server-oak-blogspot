@@ -47,6 +47,12 @@ export const signupRateLimit = createRateLimiter({
   message: 'Too many signup attempts. Please try again later.',
 })
 
+export const recoveryRateLimit = createRateLimiter({
+  limit: positiveInteger(process.env.AUTH_RECOVERY_RATE_LIMIT, 5),
+  windowMs: 60 * 60 * 1000,
+  message: 'Too many password reset requests. Please try again later.',
+})
+
 export const refreshRateLimit = createRateLimiter({
   limit: positiveInteger(process.env.AUTH_REFRESH_RATE_LIMIT, 30),
   windowMs: 15 * 60 * 1000,

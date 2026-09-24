@@ -28,6 +28,13 @@ articlesRouter.delete(
   engagementController.removeComment,
 )
 articlesRouter.post(
+  '/:id/comments/:commentId/like',
+  requireMember,
+  validateIdParam,
+  validateCommentId,
+  engagementController.toggleCommentLike,
+)
+articlesRouter.post(
   '/:id/like', requireMember, validateIdParam, engagementController.toggleLike,
 )
 articlesRouter.post(

@@ -15,6 +15,16 @@ export async function signIn(req, res) {
   sendAuthResponse(res, await authService.signIn(req.body))
 }
 
+export async function requestPasswordRecovery(req, res) {
+  await authService.requestPasswordRecovery(req.body.email)
+  res.json({ message: 'If an account exists for this email, a password reset link has been sent.' })
+}
+
+export async function completePasswordRecovery(req, res) {
+  await authService.completePasswordRecovery(req.body.refreshToken, req.body.newPassword)
+  res.json({ message: 'Password updated. You can now sign in.' })
+}
+
 export async function refresh(req, res) {
   sendAuthResponse(res, await authService.refreshSession(getRefreshToken(req)))
 }

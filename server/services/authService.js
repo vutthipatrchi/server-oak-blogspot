@@ -81,6 +81,16 @@ export async function signUp(input) {
   if (!created.user) throw new HttpError(400, 'Unable to create account.')
 
   if (!created.session) {
+    // Email confirmation postpones the first authenticated request. Create the
+    // profile now so username login can resolve the account after confirmation.
+    // Supabase may return an obfuscated user for an existing email, so verify
+    // the ID with the admin API before writing a profile.
+    if (canWriteWithSupabase) {
+      const { data: verified } = await supabase.auth.admin.getUserById(created.user.id)
+      if (verified?.user?.email?.toLowerCase() === normalizedEmail) {
+        await ensureMemberProfile(verified.user)
+      }
+    }
     return {
       member: await memberFrom(created.user),
       session: null,
@@ -115,6 +125,33 @@ export async function signIn(input) {
     throw new HttpError(403, 'Administrator access is required.')
   }
   return response
+}
+
+export async function requestPasswordRecovery(email) {
+  if (!authClient) throw new HttpError(503, 'Supabase Auth is not configured.')
+  const clientOrigin = (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173').replace(/\/$/, '')
+  const { error } = await authClient.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: `${clientOrigin}/?auth=reset-password`,
+  })
+  if (error) {
+    throw error.status > 0
+      ? new HttpError(error.status, error.message)
+      : new HttpError(503, 'Authentication provider is unavailable.')
+  }
+}
+
+export async function completePasswordRecovery(refreshToken, newPassword) {
+  if (!authClient || !canWriteWithSupabase) {
+    throw new HttpError(503, 'Password recovery is not configured.')
+  }
+  const { data, error } = await authClient.auth.refreshSession({ refresh_token: refreshToken })
+  if (error || !data.user || !data.session) {
+    throw new HttpError(401, 'Password recovery link is invalid or expired.')
+  }
+  const { error: updateError } = await supabase.auth.admin.updateUserById(data.user.id, {
+    password: newPassword,
+  })
+  if (updateError) throw new HttpError(updateError.status ?? 400, updateError.message)
 }
 
 export async function refreshSession(refreshToken) {

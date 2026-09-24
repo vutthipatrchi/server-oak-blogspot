@@ -27,22 +27,3 @@ export function health(_req, res) {
     writesEnabled: canWriteWithSupabase,
   })
 }
-
-export function notifications(_req, res) {
-  res.json({
-    notifications: [
-      {
-        id: 1,
-        title: 'Article needs review',
-        detail: 'A draft article is waiting for review.',
-        target: '/admin/articles',
-      },
-      {
-        id: 2,
-        title: 'Profile reminder',
-        detail: 'Keep your author profile up to date.',
-        target: '/admin/profile',
-      },
-    ],
-  })
-}

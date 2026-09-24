@@ -13,4 +13,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Query an article
-        run: curl --fail --show-error --silent --location "${{ secrets.BACKEND_URL }}/api/articles?limit=1"
+        run: curl --fail --show-error --silent --location "${{ secrets.BACKEND_URL }}/api/articles?page=1&limit=1"

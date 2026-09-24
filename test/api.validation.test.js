@@ -311,6 +311,27 @@ test('member authentication validates credentials and requires a session', async
   assert.deepEqual(logout.data, { error: 'Authentication is required.' })
 })
 
+test('password recovery validates email, token, and new password', async () => {
+  const invalidEmail = await axios.post(`${baseUrl}/api/auth/recover`, { email: 'invalid' }, {
+    validateStatus: () => true,
+  })
+  assert.equal(invalidEmail.status, 400)
+  assert.deepEqual(invalidEmail.data, { error: 'a valid email is required.' })
+
+  const missingToken = await axios.post(`${baseUrl}/api/auth/recover/complete`, {
+    newPassword: 'valid-password',
+  }, { validateStatus: () => true })
+  assert.equal(missingToken.status, 400)
+  assert.deepEqual(missingToken.data, { error: 'a password recovery token is required.' })
+
+  const shortPassword = await axios.post(`${baseUrl}/api/auth/recover/complete`, {
+    refreshToken: 'placeholder',
+    newPassword: 'short',
+  }, { validateStatus: () => true })
+  assert.equal(shortPassword.status, 400)
+  assert.deepEqual(shortPassword.data, { error: 'newPassword must be at least 8 characters.' })
+})
+
 test('article engagement endpoints require member authentication', async () => {
   const requests = [
     axios.post(`${baseUrl}/api/articles/1/comments`, { text: 'Hello' }, { validateStatus: () => true }),

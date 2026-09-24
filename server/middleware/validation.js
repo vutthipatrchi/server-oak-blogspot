@@ -228,6 +228,23 @@ export function validateSignIn(req, res, next) {
   next()
 }
 
+export function validateRecoveryRequest(req, res, next) {
+  if (!isNonEmptyString(req.body.email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.email)) {
+    return badRequest(res, 'a valid email is required.')
+  }
+  next()
+}
+
+export function validateRecoveryCompletion(req, res, next) {
+  if (!isNonEmptyString(req.body.refreshToken)) {
+    return badRequest(res, 'a password recovery token is required.')
+  }
+  if (!isNonEmptyString(req.body.newPassword) || req.body.newPassword.length < 8) {
+    return badRequest(res, 'newPassword must be at least 8 characters.')
+  }
+  next()
+}
+
 export function validateMemberProfile(req, res, next) {
   if (!isNonEmptyString(req.body.name) || !isNonEmptyString(req.body.username)) {
     return badRequest(res, 'name and username are required.')
@@ -245,6 +262,10 @@ export function validateComment(req, res, next) {
   if (!isNonEmptyString(req.body.text)) return badRequest(res, 'comment text is required.')
   if (req.body.text.trim().length > 2000) {
     return badRequest(res, 'comment text must not exceed 2000 characters.')
+  }
+  if (req.body.replyToCommentId !== undefined
+    && (!Number.isSafeInteger(Number(req.body.replyToCommentId)) || Number(req.body.replyToCommentId) < 1)) {
+    return badRequest(res, 'replyToCommentId must be a positive integer.')
   }
   next()
 }

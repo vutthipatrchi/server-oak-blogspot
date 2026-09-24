@@ -13,6 +13,9 @@ comments, likes, categories, and profiles in Supabase.
    `supabase/cleanup/drop_legacy_article_category.sql` to remove the compatibility column.
    Existing projects must also run
    `supabase/migrations/20260804000200_unify_user_profiles.sql` before deploying this API.
+   Run `supabase/migrations/20260924000200_backfill_missing_signup_profiles.sql`
+   to restore username login for accounts created with email confirmation before
+   profiles were created at signup.
    After every backend instance uses `profiles`, run
    `supabase/cleanup/drop_legacy_profile_tables.sql`.
 3. Create a private Supabase Storage bucket named `oakblog` (or set
@@ -20,6 +23,7 @@ comments, likes, categories, and profiles in Supabase.
    `articles/YYYY/MM`, `profiles/admins/:id`, and `profiles/members/:id` paths.
 4. Copy `.env.example` to `.env` and fill in the values.
 5. Start development mode with `npm run dev`, or start normally with `npm start`.
+   For password recovery, add `${CLIENT_ORIGIN}/?auth=reset-password` to the Supabase Auth redirect URL allow list and configure email delivery.
 6. Optionally import the frontend seed articles into an empty database with
    `npm run import:articles`.
 
@@ -41,6 +45,11 @@ Existing databases must also run
 this API version. It reconciles existing counters and installs a database trigger
 so concurrent likes and unlikes update article totals atomically.
 
+All databases must run `supabase/migrations/20260924000100_comment_notifications.sql`
+before deploying the notification and comment interaction changes. It adds comment
+replies, comment likes, notification storage, and database triggers for new comments,
+article likes, comment replies, and likes on a member's own comment.
+
 ## API
 
 - `GET /api/health`
@@ -57,6 +66,8 @@ so concurrent likes and unlikes update article totals atomically.
 - `POST /api/articles/:id/like`
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
+- `POST /api/auth/recover`
+- `POST /api/auth/recover/complete`
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
